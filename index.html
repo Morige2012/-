@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ポケモンバトル：ピカチュウ vs イーブイ</title>
+        <!-- Tailwind CSSを追加 -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        <!-- CDNからReactを読み込み -->
+        <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+        <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+        <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+      </head>
+      <body>
+        <div id="root"></div>
+        <script type="text/babel">
+          const PokemonBattle = () => {
+            // ポケモンデータ
+            const pokemonData = {
+              pikachu: {
+                name: 'ピカチュウ',
+                maxHp: 100,
+                currentHp: 100,
+                moves: [
+                  { name: '10まんボルト', power: 20, type: 'electric' },
+                  { name: 'アイアンテール', power: 15, type: 'normal' },
+                  { name: 'でんこうせっか', power: 10, type: 'normal' },
+                  { name: 'ボルテッカー', power: 30, type: 'electric' }
+                ]
+              },
+              eevee: {
+                name: 'イーブイ',
+                maxHp: 100,
+                currentHp: 100,
+                moves: [
+                  { name: 'たいあたり', power: 15, type: 'normal' },
+                  { name: 'スイフト', power: 20, type: 'normal' },
+                  { name: 'かみつく', power: 18, type: 'dark' },
+                  { name: 'あまえる', power: 10, type: 'normal' }
+                ]
+              }
+            };
+      
+      
+            // ステート設定
+            const [playerPokemon, setPlayerPokemon] = React.useState({...pokemonData.pikachu});
+            const [cpuPokemon, setCpuPokemon] = React.useState({...pokemonData.eevee});
+            const [battleLog, setBattleLog] = React.useState(['バトル開始！ ピカチュウ vs イーブイ']);
+            const [currentTurn, setCurrentTurn] = React.useState('player'); // player or cpu
+            const [gameOver, setGameOver] = React.useState(false);
+            const [playerAnimation, setPlayerAnimation] = React.useState('idle');
+            const [cpuAnimation, setCpuAnimation] = React.useState('idle');
+            const [effectType, setEffectType] = React.useState(null);
+            const [effectPosition, setEffectPosition] = React.useState('cpu');
+            const [showEffect, setShowEffect] = React.useState(false);
+      
+      
+            // CPU行動処理
+            React.useEffect(() => {
+              if (currentTurn === 'cpu' && !gameOver) {
+                const cpuTurn = setTimeout(() => {
+                  const randomMove = cpuPokemon.moves[Math.floor(Math.random() * cpuPokemon.moves.length)];
+                  handleAttack(cpuPokemon, playerPokemon, randomMove, setCpuPokemon, setPlayerPokemon, 'cpu');
+                }, 1500);
+      
+      
+                return () => clearTimeout(cpuTurn);
+              }
+            }, [currentTurn, cpuPokemon, playerPokemon, gameOver]);
+      
+      
+            // アニメーション後の状態リセット
+            React.useEffect(() => {
+              if (playerAnimation !== 'idle' || cpuAnimation !== 'idle') {
+                const animTimeout = setTimeout(() => {
+                  setPlayerAnimation('idle');
+                  setCpuAnimation('idle');
+                }, 1000);
+      
+      
+                return () => clearTimeout(animTimeout);
+              }
+            }, [playerAnimation, cpuAnimation]);
+      
+      
+            // エフェクトアニメーション後のリセット
+            React.useEffect(() => {
+              if (showEffect) {
+                const effectTimeout = setTimeout(() => {
+                  setShowEffect(false);
+                }, 1000);
+      
+      
+                return () => clearTimeout(effectTimeout);
+              }
+            }, [showEffect]);
+      
+      
+            // 攻撃処理
+            const handleAttack = (attacker, defender, move, setAttacker, setDefender, turn) => {
+              // アタッカーの攻撃アニメーション
+              if (turn === 'player') {
+                setPlayerAnimation('attack');
+                setCpuAnimation('hurt');
+                setEffectType(move.type);
+                setEffectPosition('cpu');
+              } else {
+                setCpuAnimation('attack');
+                setPlayerAnimation('hurt');
+                setEffectType(move.type);
+                setEffectPosition('player');
+              }
+      
+      
+              // ダメージ計算（実際のポケモンはもっと複雑）
+              const damage = Math.floor(move.power * (0.8 + Math.random() * 0.4));
+              const newHp = Math.max(0, defender.currentHp - damage);
+      
+      
+              // エフェクト表示
+              setShowEffect(true);
+      
+      
+              // ダメージ適用
+              setDefender(prev => ({
+                ...prev,
+                currentHp: newHp
+              }));
+      
+      
+              // ログ更新
+              setBattleLog(prev => [
+                ...prev,
+                `${attacker.name}の ${move.name}！ ${defender.name}に ${damage} のダメージ！`
+              ]);
+      
+      
+              // HP判定
+              if (newHp <= 0) {
+                setBattleLog(prev => [...prev, `${defender.name}は倒れた！`]);
+                setGameOver(true);
+              } else {
+                // ターン交代
+                setCurrentTurn(turn === 'player' ? 'cpu' : 'player');
+              }
+            };
+      
+      
+            // リセット処理
+            const resetGame = () => {
+              setPlayerPokemon({...pokemonData.pikachu});
+              setCpuPokemon({...pokemonData.eevee});
+              setBattleLog(['バトル開始！ ピカチュウ vs イーブイ']);
+              setCurrentTurn('player');
+              setGameOver(false);
+              setPlayerAnimation('idle');
+              setCpuAnimation('idle');
+              setEffectType(null);
+              setShowEffect(false);
+            };
+      
+      
+            // HPバーの色を設定
+            const getHpColor = (currentHp, maxHp) => {
+              const hpPercentage = (currentHp / maxHp) * 100;
+              if (hpPercentage > 50) return 'bg-green-500';
+              if (hpPercentage > 20) return 'bg-yellow-500';
+              return 'bg-red-500';
+            };
+      
+      
+            // エフェクトコンポーネント
+            const BattleEffect = ({ type, position }) => {
+              let effectStyle = {
+                position: 'absolute',
+                width: '100px',
+                height: '100px',
+                zIndex: 10,
+                animation: 'effect-animation 0.8s forwards'
+              };
+      
+      
+              let effectContent;
+      
+      
+              // エフェクトの位置
+              if (position === 'player') {
+                effectStyle = {...effectStyle, left: '25%', top: '50%'};
+              } else {
+                effectStyle = {...effectStyle, right: '25%', top: '30%'};
+              }
+      
+      
+              // タイプごとのエフェクト
+              switch (type) {
+                case 'electric':
+                  effectContent = (
+                    <div className="relative">
+                      <div className="absolute w-20 h-20 bg-yellow-400 opacity-80 animate-ping rounded-full"></div>
+                      <div className="absolute w-16 h-16 bg-yellow-300 animate-pulse rounded-full"></div>
+                      <div className="absolute w-2 h-16 bg-yellow-200 rotate-45 animate-pulse"></div>
+                      <div className="absolute w-2 h-16 bg-yellow-200 -rotate-45 animate-pulse"></div>
+                    </div>
+                  );
+                  break;
+                case 'normal':
+                  effectContent = (
+                    <div className="relative">
+                      <div className="absolute w-16 h-16 bg-gray-300 opacity-80 animate-ping rounded-full"></div>
+                      <div className="absolute w-12 h-12 bg-gray-200 animate-pulse rounded-full"></div>
+                      <div className="absolute w-20 h-4 bg-gray-400 rotate-45 animate-pulse rounded-full"></div>
+                    </div>
+                  );
+                  break;
+                case 'dark':
+                  effectContent = (
+                    <div className="relative">
+                      <div className="absolute w-16 h-16 bg-purple-900 opacity-80 animate-ping rounded-full"></div>
+                      <div className="absolute w-12 h-12 bg-purple-800 animate-pulse rounded-full"></div>
+                      <div className="absolute w-20 h-4 bg-purple-600 rotate-45 animate-pulse rounded-full"></div>
+                    </div>
+                  );
+                  break;
+                default:
+                  effectContent = (
+                    <div className="absolute w-16 h-16 bg-white opacity-80 animate-ping rounded-full"></div>
+                  );
+              }
+      
+      
+              return (
+                <div style={effectStyle} className="flex items-center justify-center">
+                  {effectContent}
+                </div>
+              );
+            };
+      
+      
+            return (
+              <div className="relative w-full h-full bg-green-100 p-4 font-sans overflow-hidden">
+                {/* タイトル */}
+                <h1 className="text-center text-2xl font-bold mb-4">ポケモンバトル</h1>
+      
+      
+                {/* バトルフィールド */}
+                <div className="relative bg-gradient-to-b from-blue-100 to-green-200 h-64 rounded-lg mb-4 overflow-hidden">
+                  {/* エフェクト */}
+                  {showEffect && (
+                    <BattleEffect type={effectType} position={effectPosition} />
+                  )}
+      
+      
+                  {/* CPUポケモン（イーブイ） */}
+                  <div className={`absolute top-8 right-16 transition-all duration-300 transform ${
+                    cpuAnimation === 'attack' ? 'translate-x-(-20px) scale-110' :
+                    cpuAnimation === 'hurt' ? 'translate-y-2 animate-bounce opacity-70' : ''
+                  }`}>
+                    <div className="relative">
+                      {/* イーブイの体 */}
+                      <div className="w-32 h-32 relative">
+                        {/* 体 */}
+                        <div className="absolute w-28 h-24 bg-amber-200 rounded-3xl top-6"></div>
+      
+      
+                        {/* 頭 */}
+                        <div className="absolute w-24 h-20 bg-amber-200 rounded-full left-2"></div>
+      
+      
+                        {/* 耳 */}
+                        <div className="absolute w-8 h-12 bg-amber-200 rounded-tl-full rounded-tr-full -top-6 left-4 transform -rotate-12"></div>
+                        <div className="absolute w-8 h-12 bg-amber-200 rounded-tl-full rounded-tr-full -top-6 right-4 transform rotate-12"></div>
+      
+      
+                        <div className="absolute w-6 h-10 bg-amber-800 rounded-tl-full rounded-tr-full -top-5 left-5 transform -rotate-12"></div>
+                        <div className="absolute w-6 h-10 bg-amber-800 rounded-tl-full rounded-tr-full -top-5 right-5 transform rotate-12"></div>
+      
+      
+                        {/* 顔 */}
+                        <div className="absolute w-2 h-2 bg-black rounded-full top-8 left-8"></div>
+                        <div className="absolute w-2 h-2 bg-black rounded-full top-8 right-8"></div>
+                        <div className="absolute w-3 h-1 bg-black rounded-full top-12 left-12"></div>
+      
+      
+                        {/* しっぽ */}
+                        <div className="absolute w-16 h-12 bg-amber-50 rounded-full top-16 right-0"></div>
+      
+      
+                        {/* 足 */}
+                        <div className="absolute w-6 h-4 bg-amber-200 rounded-b-lg bottom-0 left-6"></div>
+                        <div className="absolute w-6 h-4 bg-amber-200 rounded-b-lg bottom-0 right-6"></div>
+                      </div>
+                    </div>
+      
+      
+                    {/* HPバー */}
+                    <div className="bg-white p-1 rounded-lg shadow-md mt-2">
+                      <div className="text-center text-sm font-bold">{cpuPokemon.name} HP: {cpuPokemon.currentHp}/{cpuPokemon.maxHp}</div>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div
+                          className={`h-2.5 rounded-full ${getHpColor(cpuPokemon.currentHp, cpuPokemon.maxHp)}`}
+                          style={{width: `${(cpuPokemon.currentHp / cpuPokemon.maxHp) * 100}%`}}>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+      
+      
+                  {/* プレイヤーポケモン（ピカチュウ） */}
+                  <div className={`absolute bottom-8 left-16 transition-all duration-300 transform ${
+                    playerAnimation === 'attack' ? 'translate-x-4 scale-110' :
+                    playerAnimation === 'hurt' ? 'translate-y-2 animate-bounce opacity-70' : ''
+                  }`}>
+                    <div className="relative">
+                      {/* ピカチュウの体 */}
+                      <div className="w-32 h-32 relative">
+                        {/* 体 */}
+                        <div className="absolute w-24 h-24 bg-yellow-300 rounded-3xl top-6 left-4"></div>
+      
+      
+                        {/* 頭 */}
+                        <div className="absolute w-24 h-20 bg-yellow-300 rounded-full left-4"></div>
+      
+      
+                        {/* 耳 */}
+                        <div className="absolute w-6 h-12 bg-yellow-300 rounded-tl-full rounded-tr-full -top-8 left-8 transform -rotate-12"></div>
+                        <div className="absolute w-6 h-12 bg-yellow-300 rounded-tl-full rounded-tr-full -top-8 right-8 transform rotate-12"></div>
+      
+      
+                        <div className="absolute w-4 h-5 bg-black rounded-tl-full rounded-tr-full -top-3 left-9 transform -rotate-12"></div>
+                        <div className="absolute w-4 h-5 bg-black rounded-tl-full rounded-tr-full -top-3 right-9 transform rotate-12"></div>
+      
+      
+                        {/* 赤い頬 */}
+                        <div className="absolute w-4 h-4 bg-red-400 rounded-full top-10 left-6"></div>
+                        <div className="absolute w-4 h-4 bg-red-400 rounded-full top-10 right-6"></div>
+      
+      
+                        {/* 顔 */}
+                        <div className="absolute w-2 h-2 bg-black rounded-full top-8 left-10"></div>
+                        <div className="absolute w-2 h-2 bg-black rounded-full top-8 right-10"></div>
+                        <div className="absolute w-2 h-1 bg-black rounded-full top-12 left-14"></div>
+      
+      
+                        {/* しっぽ */}
+                        <div className="absolute w-12 h-4 bg-yellow-300 left-8 top-20 transform rotate-45"></div>
+                        <div className="absolute w-8 h-12 bg-yellow-800 left-16 top-16 transform rotate-45 rounded-br-lg"></div>
+      
+      
+                        {/* 足 */}
+                        <div className="absolute w-6 h-4 bg-yellow-300 rounded-b-lg bottom-0 left-6"></div>
+                        <div className="absolute w-6 h-4 bg-yellow-300 rounded-b-lg bottom-0 right-6"></div>
+                      </div>
+                    </div>
+      
+      
+                    {/* HPバー */}
+                    <div className="bg-white p-1 rounded-lg shadow-md mt-2">
+                      <div className="text-center text-sm font-bold">{playerPokemon.name} HP: {playerPokemon.currentHp}/{playerPokemon.maxHp}</div>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div
+                          className={`h-2.5 rounded-full ${getHpColor(playerPokemon.currentHp, playerPokemon.maxHp)}`}
+                          style={{width: `${(playerPokemon.currentHp / playerPokemon.maxHp) * 100}%`}}>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+      
+      
+                {/* コントロールエリア */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* 技選択 */}
+                  <div className="bg-white p-4 rounded-lg shadow-md">
+                    <h3 className="text-center font-bold mb-2">技を選ぶ</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {playerPokemon.moves.map((move, index) => (
+                        <button
+                          key={index}
+                          onClick={() => currentTurn === 'player' && !gameOver && handleAttack(playerPokemon, cpuPokemon, move, setPlayerPokemon, setCpuPokemon, 'player')}
+                          className={`p-2 rounded ${
+                            move.type === 'electric' ? 'bg-yellow-400 hover:bg-yellow-500' :
+                            move.type === 'normal' ? 'bg-gray-300 hover:bg-gray-400' :
+                            move.type === 'dark' ? 'bg-purple-800 hover:bg-purple-900 text-white' :
+                            'bg-blue-400 hover:bg-blue-500'
+                          } ${currentTurn !== 'player' || gameOver ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          disabled={currentTurn !== 'player' || gameOver}
+                        >
+                          {move.name} ({move.power})
+                        </button>
+                      ))}
+                    </div>
+                    {gameOver && (
+                      <button
+                        onClick={resetGame}
+                        className="w-full mt-4 p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                      >
+                        もう一度バトル
+                      </button>
+                    )}
+                  </div>
+      
+      
+                  {/* バトルログ */}
+                  <div className="bg-white p-4 rounded-lg shadow-md h-40 overflow-y-auto">
+                    <h3 className="text-center font-bold mb-2">バトルログ</h3>
+                    <ul className="space-y-1">
+                      {battleLog.map((log, index) => (
+                        <li key={index} className="text-sm border-b border-gray-100 pb-1">
+                          {log}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+      
+      
+                {/* 状態表示 */}
+                <div className="mt-4 text-center font-bold">
+                  {gameOver ? (
+                    <div className="text-xl text-red-500">バトル終了！</div>
+                  ) : (
+                    <div>現在のターン: {currentTurn === 'player' ? 'あなた' : 'CPU'}</div>
+                  )}
+                </div>
+      
+      
+                {/* CSSアニメーション */}
+                <style jsx>{`
+                  @keyframes effect-animation {
+                    0% { transform: scale(0.2); opacity: 0.2; }
+                    50% { transform: scale(1.5); opacity: 0.8; }
+                    100% { transform: scale(0.8); opacity: 0; }
+                  }
+                `}</style>
+              </div>
+            );
+          };
+          // レンダリング
+          ReactDOM.render(<PokemonBattle />, document.getElementById('root'));
+        </script>
+      </body>
+</html>
